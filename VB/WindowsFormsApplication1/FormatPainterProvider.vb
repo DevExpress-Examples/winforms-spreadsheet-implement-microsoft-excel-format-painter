@@ -1,24 +1,27 @@
-﻿Imports DevExpress.Spreadsheet
+Imports DevExpress.Spreadsheet
 Imports DevExpress.XtraBars
 Imports DevExpress.XtraSpreadsheet
 Imports System
-Imports System.Collections.Generic
-Imports System.Linq
-Imports System.Text
 Imports System.Windows.Forms
 
 Namespace WindowsFormsApplication1
+
     Public Class FormatPainterProvider
+
         Private spreadsheetControl As SpreadsheetControl
+
         Private biFormatPainter As BarCheckItem
+
         Private sourceCell As Range = Nothing
 
-        Private formatPainterMode_Renamed As FormatPainterMode = WindowsFormsApplication1.FormatPainterProvider.FormatPainterMode.None
-        Private Enum FormatPainterMode
+        Private formatPainterMode As FormatPainterModeType = FormatPainterModeType.None
+
+        Friend Enum FormatPainterModeType
             SingleAction
             MultipleActions
             None
         End Enum
+
         Public Sub RegisterFormatPainter(ByVal spreadsheet As SpreadsheetControl, ByVal biFormatPainter As BarCheckItem)
             spreadsheetControl = spreadsheet
             Me.biFormatPainter = biFormatPainter
@@ -29,50 +32,39 @@ Namespace WindowsFormsApplication1
             AddHandler spreadsheet.SheetRemoving, AddressOf Spreadsheet_SheetRemoving
             AddHandler biFormatPainter.CheckedChanged, AddressOf barCheckItem1_CheckedChanged
             AddHandler biFormatPainter.ItemDoubleClick, AddressOf barCheckItem1_ItemDoubleClick
+        End Sub
 
-        End Sub
         Private Sub Spreadsheet_SheetRemoving(ByVal sender As Object, ByVal e As SheetRemovingEventArgs)
-            If sourceCell IsNot Nothing AndAlso e.SheetName = sourceCell.Worksheet.Name Then
-                biFormatPainter.Checked = False
-            End If
+            If sourceCell IsNot Nothing AndAlso Equals(e.SheetName, sourceCell.Worksheet.Name) Then biFormatPainter.Checked = False
         End Sub
-        Private Sub barCheckItem1_CheckedChanged(ByVal sender As Object, ByVal e As DevExpress.XtraBars.ItemClickEventArgs)
+
+        Private Sub barCheckItem1_CheckedChanged(ByVal sender As Object, ByVal e As ItemClickEventArgs)
             Dim shouldCopyFormat As Boolean = biFormatPainter.Checked
             sourceCell = If(shouldCopyFormat, spreadsheetControl.SelectedCell, Nothing)
-
-            formatPainterMode_Renamed = If(shouldCopyFormat, WindowsFormsApplication1.FormatPainterProvider.FormatPainterMode.SingleAction, WindowsFormsApplication1.FormatPainterProvider.FormatPainterMode.None)
+            formatPainterMode = If(shouldCopyFormat, FormatPainterModeType.SingleAction, FormatPainterModeType.None)
         End Sub
 
         Private Sub spreadsheetControl1_MouseUp(ByVal sender As Object, ByVal e As MouseEventArgs)
-            If IsFormatPainterActivated() Then
-                ApplyFormat()
-            End If
+            If IsFormatPainterActivated() Then ApplyFormat()
         End Sub
 
         Private Function IsFormatPainterActivated() As Boolean
-            If formatPainterMode_Renamed = WindowsFormsApplication1.FormatPainterProvider.FormatPainterMode.None OrElse sourceCell Is Nothing Then
-                Return False
-            End If
-
+            If formatPainterMode = FormatPainterModeType.None OrElse sourceCell Is Nothing Then Return False
             Return True
         End Function
+
         Private Sub ApplyFormat()
             spreadsheetControl.Selection.CopyFrom(sourceCell, PasteSpecial.Formats)
-            If formatPainterMode_Renamed = WindowsFormsApplication1.FormatPainterProvider.FormatPainterMode.SingleAction Then
-                biFormatPainter.Checked = False
-            End If
+            If formatPainterMode = FormatPainterModeType.SingleAction Then biFormatPainter.Checked = False
         End Sub
 
-        Private Sub barCheckItem1_ItemDoubleClick(ByVal sender As Object, ByVal e As DevExpress.XtraBars.ItemClickEventArgs)
+        Private Sub barCheckItem1_ItemDoubleClick(ByVal sender As Object, ByVal e As ItemClickEventArgs)
             biFormatPainter.Checked = True
-            formatPainterMode_Renamed = WindowsFormsApplication1.FormatPainterProvider.FormatPainterMode.MultipleActions
+            formatPainterMode = FormatPainterModeType.MultipleActions
         End Sub
 
         Private Sub spreadsheetControl1_PreviewKeyDown(ByVal sender As Object, ByVal e As PreviewKeyDownEventArgs)
-            If Not IsFormatPainterActivated() Then
-                Return
-            End If
-
+            If Not IsFormatPainterActivated() Then Return
             If e.KeyCode = Keys.Escape Then
                 biFormatPainter.Checked = False
             End If
@@ -87,7 +79,7 @@ Namespace WindowsFormsApplication1
             End If
         End Sub
 
-        Private Sub spreadsheetControl1_CellBeginEdit(ByVal sender As Object, ByVal e As DevExpress.XtraSpreadsheet.SpreadsheetCellCancelEventArgs)
+        Private Sub spreadsheetControl1_CellBeginEdit(ByVal sender As Object, ByVal e As SpreadsheetCellCancelEventArgs)
             If IsFormatPainterActivated() Then
                 ApplyFormat()
                 e.Cancel = True
@@ -95,7 +87,5 @@ Namespace WindowsFormsApplication1
                 biFormatPainter.Enabled = False
             End If
         End Sub
-
     End Class
-
 End Namespace
